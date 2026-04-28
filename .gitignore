@@ -1,0 +1,26 @@
+# Node.js
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+ENV/
+env/
+.env
+
+# Google Credentials (IMPORTANT)
+backend/.env
+backend/credentials.json
+backend/token.json
+credentials.json
+token.json
+
+# OS files
+.DS_Store
+Thumbs.db
