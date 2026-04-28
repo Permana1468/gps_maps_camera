@@ -1,20 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Outfit:wght@300;400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f172a;
-    --foreground: #f8fafc;
-  }
+  --foreground: #2d3436;
+  --sage-green: #52796f;
+  --dark-sage: #354f52;
+  --olive-green: #3a5a40;
+  --light-sage: #84a59d;
 }
 
 body {
   color: var(--foreground);
-  background: var(--background);
+  background-color: var(--background);
+  background-image: url('/nature_line_art_bg.png');
+  background-size: cover;
+  background-attachment: fixed;
+  font-family: 'Outfit', sans-serif;
+}
+
+h1, .font-serif {
+  font-family: 'Playfair Display', serif;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
