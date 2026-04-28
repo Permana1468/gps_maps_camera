@@ -12,6 +12,33 @@ export default function CameraApp() {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [aspectRatio, setAspectRatio] = useState<'Full' | '16:9' | '4:3' | '1:1'>('Full');
+
+  const toggleAspectRatio = () => {
+    const ratios: ('Full' | '16:9' | '4:3' | '1:1')[] = ['Full', '16:9', '4:3', '1:1'];
+    const currentIndex = ratios.indexOf(aspectRatio);
+    setAspectRatio(ratios[(currentIndex + 1) % ratios.length]);
+  };
+
+  const getVideoConstraints = () => {
+    const base = { facingMode: "environment" };
+    // For mobile (portrait), width is smaller than height, so 16:9 aspect ratio is actually 9/16 = 0.5625
+    switch (aspectRatio) {
+      case '16:9': return { ...base, aspectRatio: 9/16 };
+      case '4:3': return { ...base, aspectRatio: 3/4 };
+      case '1:1': return { ...base, aspectRatio: 1 };
+      case 'Full': default: return base; // let it fill the space
+    }
+  };
+
+  const getWrapperClasses = () => {
+    switch (aspectRatio) {
+      case '1:1': return 'w-full aspect-square relative overflow-hidden bg-black flex items-center justify-center';
+      case '4:3': return 'w-full aspect-[3/4] relative overflow-hidden bg-black flex items-center justify-center';
+      case '16:9': return 'w-full aspect-[9/16] relative overflow-hidden bg-black flex items-center justify-center';
+      case 'Full': default: return 'absolute inset-0 bg-black overflow-hidden flex items-center justify-center';
+    }
+  };
 
   // Fetch Location
   const fetchLocation = useCallback(() => {
@@ -179,13 +206,14 @@ export default function CameraApp() {
     finally { setIsUploading(false); }
   };
 
-  return (
-    <div className="h-screen w-screen bg-black relative overflow-hidden text-white flex flex-col">
+    <div className="h-screen w-screen bg-black relative overflow-hidden text-white flex flex-col justify-between">
       
       {/* Top Bar Icons */}
-      <div className="p-6 flex justify-between items-center z-40 bg-gradient-to-b from-black/80 to-transparent">
+      <div className="p-6 flex justify-between items-center z-40 bg-gradient-to-b from-black/80 to-transparent absolute top-0 left-0 right-0">
         <div className="flex gap-6 items-center">
-          <Grid size={22} className="opacity-80" />
+          <button onClick={toggleAspectRatio} className="opacity-80 hover:opacity-100 flex items-center justify-center border border-white/50 rounded px-2 py-1 min-w-[3rem]">
+            <span className="text-xs font-bold">{aspectRatio}</span>
+          </button>
           <Zap size={22} className="opacity-80" />
           <div className="flex items-center gap-1 border border-white/30 rounded-md px-1.5 py-0.5 bg-black/20">
             <Paperclip size={14} />
@@ -193,72 +221,66 @@ export default function CameraApp() {
           </div>
         </div>
         <div className="flex gap-6 items-center">
-          <div className="w-6 h-6 border-2 border-white/40 rounded-sm"></div>
-          <RefreshCw size={22} className="opacity-80" />
-          <Settings size={22} className="opacity-80" />
+          <RefreshCw size={22} className="opacity-80 cursor-pointer" />
+          <Settings size={22} className="opacity-80 cursor-pointer" />
         </div>
       </div>
 
-      {/* Main Viewport */}
-      <div className="flex-1 relative">
-        {!capturedImage ? (
-          <Webcam
-            audio={false}
-            ref={webcamRef}
-            screenshotFormat="image/jpeg"
-            videoConstraints={{ facingMode: "environment" }}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <img src={capturedImage} alt="Captured" className="w-full h-full object-contain bg-black" />
-        )}
+      {/* Main Viewport Container */}
+      <div className="flex-1 flex flex-col items-center justify-center w-full relative pt-20 pb-40">
+        <div className={getWrapperClasses()}>
+          {!capturedImage ? (
+            <Webcam
+              audio={false}
+              ref={webcamRef}
+              screenshotFormat="image/jpeg"
+              videoConstraints={getVideoConstraints()}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <img src={capturedImage} alt="Captured" className="w-full h-full object-contain bg-black" />
+          )}
 
-        {/* Info Overlay - HIDE IF CAPTURED (to avoid double info) */}
-        {!capturedImage && (
-          <div className="absolute bottom-4 left-0 right-0 z-20 px-4 pointer-events-none">
-            <div className="flex justify-center gap-6 text-[11px] font-bold tracking-widest text-white/60 mb-4">
-              <span>BERBAGI LOKASI</span>
-              <span className="text-yellow-400 border-b-2 border-yellow-400 pb-1">FOTO</span>
-              <span>VIDEO</span>
-              <span>PELAPORAN</span>
-            </div>
+          {/* Info Overlay - HIDE IF CAPTURED */}
+          {!capturedImage && (
+            <div className="absolute bottom-4 left-0 right-0 z-20 px-4 pointer-events-none">
+              <div className="bg-black/60 backdrop-blur-md p-4 rounded-3xl flex gap-4 items-center border border-white/10 pointer-events-auto shadow-2xl">
+                {/* Mini Map */}
+                <div className="w-20 h-20 bg-slate-800 rounded-2xl overflow-hidden shrink-0 relative border border-white/20">
+                  <img src="https://www.google.com/maps/vt/pb=!1m4!1m3!1i14!2i8484!3i10565!2m3!1e0!2sm!3i420120488!3m8!2sen!3sus!5e1105!12m4!1e68!2m2!1sset!2sRoadmap!4e0!5m1!5f2" className="w-full h-full object-cover opacity-60" alt="map" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <MapPin className="text-red-500" size={20} />
+                  </div>
+                </div>
 
-            <div className="bg-black/60 backdrop-blur-md p-4 rounded-3xl flex gap-4 items-center border border-white/10 pointer-events-auto">
-              {/* Mini Map */}
-              <div className="w-20 h-20 bg-slate-800 rounded-2xl overflow-hidden shrink-0 relative border border-white/20">
-                <img src="https://www.google.com/maps/vt/pb=!1m4!1m3!1i14!2i8484!3i10565!2m3!1e0!2sm!3i420120488!3m8!2sen!3sus!5e1105!12m4!1e68!2m2!1sset!2sRoadmap!4e0!5m1!5f2" className="w-full h-full object-cover opacity-60" alt="map" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <MapPin className="text-red-500" size={20} />
+                <div className="flex-1 flex flex-col justify-center min-w-0">
+                  <p className="text-[12px] font-bold truncate uppercase tracking-tight text-white mb-0.5">Kec. Cibungbulang, Jawa Barat</p>
+                  <p className="text-[10px] text-white/80 line-clamp-2 leading-snug italic mb-1">{address}</p>
+                  {location && (
+                    <p className="text-[10px] font-mono text-white/90 mb-0.5">
+                      Lat {location.lat.toFixed(6)}° Long {location.lng.toFixed(6)}°
+                    </p>
+                  )}
+                  <p className="text-[9px] text-white/60 mb-1">
+                    {new Date().toLocaleDateString('id-ID')} {new Date().toLocaleTimeString('id-ID')} GMT +07:00
+                  </p>
+                  <input 
+                    type="text" 
+                    placeholder="NAMA KEGIATAN..."
+                    value={kegiatan}
+                    onChange={(e) => setKegiatan(e.target.value)}
+                    className="w-full bg-white/5 border-b border-white/10 text-[10px] py-1 outline-none placeholder:text-white/40 uppercase tracking-widest mt-1"
+                  />
                 </div>
               </div>
-
-              <div className="flex-1 space-y-1 overflow-hidden">
-                <p className="text-[13px] font-bold truncate uppercase tracking-tight">Kec. Cibungbulang, Jawa Barat</p>
-                <p className="text-[10px] text-white/70 line-clamp-2 leading-tight italic">{address}</p>
-                {location && (
-                  <p className="text-[10px] font-mono text-white/90">
-                    Lat {location.lat.toFixed(6)}° Long {location.lng.toFixed(6)}°
-                  </p>
-                )}
-                <p className="text-[10px] text-white/60">
-                  {new Date().toLocaleDateString('id-ID')} {new Date().toLocaleTimeString('id-ID')} GMT +07:00
-                </p>
-                <input 
-                  type="text" 
-                  placeholder="NAMA KEGIATAN..."
-                  value={kegiatan}
-                  onChange={(e) => setKegiatan(e.target.value)}
-                  className="w-full bg-white/5 border-b border-white/10 text-[10px] py-1 outline-none placeholder:text-white/30 uppercase tracking-widest"
-                />
-              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Bottom Controls */}
-      <div className="bg-black p-6 pb-10 z-50">
-        <div className="flex flex-col gap-8">
+      <div className="absolute bottom-0 left-0 right-0 bg-black/50 backdrop-blur-sm p-6 pb-8 z-50">
+        <div className="flex flex-col gap-4">
           {/* Zoom & Shutter */}
           <div className="flex justify-center items-center gap-12">
             {!capturedImage ? (
@@ -290,16 +312,6 @@ export default function CameraApp() {
               </div>
             )}
           </div>
-
-          {/* Bottom Icons Nav */}
-          {!capturedImage && (
-            <div className="flex justify-around items-center opacity-40">
-              <div className="flex flex-col items-center gap-1"> <ImageIcon size={20} /> <span className="text-[8px] uppercase">Pratinjau</span> </div>
-              <div className="flex flex-col items-center gap-1"> <MapPin size={20} /> <span className="text-[8px] uppercase">Lokasi</span> </div>
-              <div className="flex flex-col items-center gap-1"> <Folder size={20} /> <span className="text-[8px] uppercase">Default</span> </div>
-              <div className="flex flex-col items-center gap-1"> <LayoutGrid size={20} /> <span className="text-[8px] uppercase">Template</span> </div>
-            </div>
-          )}
         </div>
       </div>
 
