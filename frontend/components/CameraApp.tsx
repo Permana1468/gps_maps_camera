@@ -12,6 +12,7 @@ export default function CameraApp() {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(true);
 
   // Fetch Location
   const fetchLocation = useCallback(() => {
@@ -196,9 +197,6 @@ export default function CameraApp() {
   };
 
   return (
-  const [isFormOpen, setIsFormOpen] = useState(true);
-
-  return (
     <div className="flex flex-col h-full relative overflow-hidden">
       {/* Background Layer - Simplified */}
       <div className="absolute inset-0 bg-[#fdfdfd] z-0"></div>
@@ -276,14 +274,18 @@ export default function CameraApp() {
                      <div className="space-y-0.5 flex-1 pb-1">
                        {kegiatan && <p className="text-[#fbbf24] font-bold text-[12px] leading-tight mb-0.5 uppercase tracking-wider">📝 {kegiatan}</p>}
                        <p className="text-[9px] opacity-80 leading-tight">📅 {new Date().toLocaleDateString('id-ID')} - {new Date().toLocaleTimeString('id-ID')}</p>
-                       {location && <p className="text-[10px] opacity-90 leading-tight">📍 {location.lat.toFixed(6)}, {location.lng.toFixed(6)}</p>}
+                       {location && (
+                         <p className="text-[10px] opacity-90 leading-tight">
+                           📍 {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
+                         </p>
+                       )}
                        <p className="text-[10px] line-clamp-1 opacity-90 leading-tight">🏠 {address.split(',')[0]}</p>
                      </div>
                    </div>
                 </div>
               </>
             ) : (
-              <img src={capturedImage} alt="Captured" className="w-full h-full object-cover" />
+              <img src={capturedImage || ""} alt="Captured" className="w-full h-full object-cover" />
             )}
           </div>
         </div>
