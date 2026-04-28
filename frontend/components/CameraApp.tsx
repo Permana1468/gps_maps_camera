@@ -206,6 +206,7 @@ export default function CameraApp() {
     finally { setIsUploading(false); }
   };
 
+  return (
     <div className="h-screen w-screen bg-black relative overflow-hidden text-white flex flex-col justify-between">
       
       {/* Top Bar Icons */}
