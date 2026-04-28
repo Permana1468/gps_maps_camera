@@ -44,7 +44,7 @@ export default function CameraApp() {
 
   useEffect(() => {
     fetchLocation();
-    const interval = setInterval(fetchLocation, 60000); // Update every minute
+    const interval = setInterval(fetchLocation, 60000); 
     return () => clearInterval(interval);
   }, [fetchLocation]);
 
@@ -52,7 +52,6 @@ export default function CameraApp() {
     const imageSrc = webcamRef.current?.getScreenshot();
     if (!imageSrc) return;
 
-    // Create an image object to draw on canvas
     const img = new Image();
     img.src = imageSrc;
     img.onload = () => {
@@ -62,82 +61,98 @@ export default function CameraApp() {
       const ctx = canvas.getContext("2d");
       
       if (ctx) {
-        // Draw the original image
         ctx.drawImage(img, 0, 0);
 
-        // Add a dark gradient overlay at the bottom for text readability
-        const gradientHeight = 180;
-        const gradient = ctx.createLinearGradient(0, canvas.height - gradientHeight, 0, canvas.height);
-        gradient.addColorStop(0, "transparent");
-        gradient.addColorStop(1, "rgba(0,0,0,0.8)");
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, canvas.height - gradientHeight, canvas.width, gradientHeight);
+        // --- STAMP DESIGN (PRO STYLE) ---
+        const boxHeight = canvas.height * 0.22;
+        const boxY = canvas.height - boxHeight - 20;
+        const boxX = 20;
+        const boxWidth = canvas.width - 40;
+        const borderRadius = 20;
 
-        // Styling for stamps
-        const padding = 30;
-        const logoSize = 100;
+        // Draw Translucent Box
+        ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+        ctx.beginPath();
+        ctx.roundRect(boxX, boxY, boxWidth, boxHeight, borderRadius);
+        ctx.fill();
+
+        // Draw Mini Map Placeholder
+        const mapSize = boxHeight - 30;
+        const mapX = boxX + 15;
+        const mapY = boxY + 15;
+        ctx.fillStyle = "#1e293b";
+        ctx.beginPath();
+        ctx.roundRect(mapX, mapY, mapSize, mapSize, 10);
+        ctx.fill();
         
-        // --- 1. DRAW LOGO (BOTTOM LEFT) ---
-        const logoImg = new Image();
-        logoImg.src = "/logo-bogor.png";
-        logoImg.onload = () => {
-          ctx.drawImage(logoImg, padding, canvas.height - logoSize - padding, logoSize, logoSize);
-          
-          // --- 2. DRAW TEXT (NEXT TO LOGO) ---
-          const textStartX = padding + logoSize + 20;
-          let currentY = canvas.height - logoSize - padding + 15;
+        // Mock Map Lines
+        ctx.strokeStyle = "rgba(255,255,255,0.1)";
+        ctx.lineWidth = 2;
+        for(let i=0; i<5; i++) {
+          ctx.beginPath(); ctx.moveTo(mapX, mapY + (i*mapSize/5)); ctx.lineTo(mapX+mapSize, mapY + (i*mapSize/5)); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(mapX + (i*mapSize/5), mapY); ctx.lineTo(mapX + (i*mapSize/5), mapY+mapSize); ctx.stroke();
+        }
+        
+        // Draw Red Pin
+        ctx.fillStyle = "#ef4444";
+        ctx.beginPath();
+        ctx.arc(mapX + mapSize/2, mapY + mapSize/2, 6, 0, Math.PI * 2);
+        ctx.fill();
 
-          // A. Nama Kegiatan (Highlight)
-          if (kegiatan) {
-            ctx.font = "bold 28px sans-serif";
-            ctx.fillStyle = "#fbbf24"; // Amber color
-            ctx.fillText(`📝 ${kegiatan.toUpperCase()}`, textStartX, currentY);
-            currentY += 40;
-          }
+        // Text Content
+        const textX = mapX + mapSize + 20;
+        let textY = mapY + 25;
 
-          // B. Tanggal & Jam
-          ctx.font = "22px sans-serif";
-          ctx.fillStyle = "white";
-          const now = new Date();
-          const dateStr = now.toLocaleDateString('id-ID');
-          const timeStr = now.toLocaleTimeString('id-ID');
-          ctx.fillText(`📅 ${dateStr} - ${timeStr}`, textStartX, currentY);
-          currentY += 35;
+        // Title
+        ctx.font = "bold 24px sans-serif";
+        ctx.fillStyle = "white";
+        ctx.fillText("KEC. CIBUNGBULANG, JAWA BARAT", textX, textY);
+        
+        textY += 30;
+        ctx.font = "italic 16px sans-serif";
+        ctx.fillStyle = "rgba(255,255,255,0.8)";
+        wrapText(ctx, address, textX, textY, boxWidth - mapSize - 60, 20);
 
-          // C. Koordinat
-          if (location) {
-            ctx.font = "24px sans-serif";
-            ctx.fillText(`📍 Lat: ${location.lat.toFixed(6)}, Lng: ${location.lng.toFixed(6)}`, textStartX, currentY);
-            currentY += 35;
-          }
+        textY += 45;
+        ctx.font = "bold 18px monospace";
+        ctx.fillStyle = "white";
+        if (location) {
+          ctx.fillText(`Lat ${location.lat.toFixed(6)}° Long ${location.lng.toFixed(6)}°`, textX, textY);
+        }
 
-          // D. Alamat (Wrap Text)
-          ctx.font = "22px sans-serif";
-          wrapText(ctx, `🏠 ${address}`, textStartX, currentY, canvas.width - textStartX - padding, 30);
+        textY += 25;
+        ctx.font = "16px sans-serif";
+        ctx.fillStyle = "rgba(255,255,255,0.6)";
+        const now = new Date();
+        ctx.fillText(`${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID')} GMT +07:00`, textX, textY);
 
-          setCapturedImage(canvas.toDataURL("image/jpeg", 0.9));
-        };
+        if (kegiatan) {
+          textY += 30;
+          ctx.font = "bold 16px sans-serif";
+          ctx.fillStyle = "#fbbf24";
+          ctx.fillText(`KEGIATAN: ${kegiatan.toUpperCase()}`, textX, textY);
+        }
+
+        setCapturedImage(canvas.toDataURL("image/jpeg", 0.9));
       }
     };
   }, [location, address, kegiatan]);
 
-  // Helper for text wrapping on canvas
-  const wrapText = (context: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number) => {
+  const wrapText = (ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number) => {
     const words = text.split(' ');
     let line = '';
     for (let n = 0; n < words.length; n++) {
       const testLine = line + words[n] + ' ';
-      const metrics = context.measureText(testLine);
-      const testWidth = metrics.width;
-      if (testWidth > maxWidth && n > 0) {
-        context.fillText(line, x, y);
+      const metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && n > 0) {
+        ctx.fillText(line, x, y);
         line = words[n] + ' ';
         y += lineHeight;
       } else {
         line = testLine;
       }
     }
-    context.fillText(line, x, y);
+    ctx.fillText(line, x, y);
   };
 
   const uploadPhoto = async () => {
@@ -146,15 +161,9 @@ export default function CameraApp() {
     try {
       const response = await fetch('/api/upload', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          image: capturedImage,
-          kegiatan: kegiatan || "Tanpa_Nama",
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: capturedImage, kegiatan: kegiatan || "Tanpa_Nama" }),
       });
-
       const result = await response.json();
       if (result.status === 'success') {
         setUploadSuccess(true);
@@ -164,21 +173,17 @@ export default function CameraApp() {
           setKegiatan("");
         }, 3000);
       } else {
-        alert("Gagal upload: " + result.message);
+        alert("Gagal: " + result.message);
       }
-    } catch (error) {
-      console.error("Error uploading:", error);
-      alert("Terjadi kesalahan jaringan.");
-    } finally {
-      setIsUploading(false);
-    }
+    } catch (e) { alert("Kesalahan jaringan."); }
+    finally { setIsUploading(false); }
   };
 
   return (
-    <div className="flex flex-col h-screen w-full bg-black relative overflow-hidden text-white font-sans">
+    <div className="h-screen w-screen bg-black relative overflow-hidden text-white flex flex-col">
       
       {/* Top Bar Icons */}
-      <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-40 bg-gradient-to-b from-black/60 to-transparent">
+      <div className="p-6 flex justify-between items-center z-40 bg-gradient-to-b from-black/80 to-transparent">
         <div className="flex gap-6 items-center">
           <Grid size={22} className="opacity-80" />
           <Zap size={22} className="opacity-80" />
@@ -194,8 +199,8 @@ export default function CameraApp() {
         </div>
       </div>
 
-      {/* Full Screen Webcam / Preview */}
-      <div className="absolute inset-0 z-0">
+      {/* Main Viewport */}
+      <div className="flex-1 relative">
         {!capturedImage ? (
           <Webcam
             audio={false}
@@ -207,116 +212,94 @@ export default function CameraApp() {
         ) : (
           <img src={capturedImage} alt="Captured" className="w-full h-full object-contain bg-black" />
         )}
-      </div>
 
-      {/* Pro Info Overlay (Bottom) */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 pb-32">
-        <div className="px-4 flex flex-col gap-4">
-          
-          {/* Tabs Area */}
-          <div className="flex justify-center gap-6 text-[11px] font-bold tracking-widest text-white/60 mb-2">
-            <span>BERBAGI LOKASI</span>
-            <span className="text-yellow-400 border-b-2 border-yellow-400 pb-1">FOTO</span>
-            <span>VIDEO</span>
-            <span>PELAPORAN</span>
-          </div>
-
-          {/* Main Info Display */}
-          <div className="bg-black/40 backdrop-blur-sm p-4 rounded-xl flex gap-4 items-center border border-white/10">
-            {/* Mini Map Placeholder */}
-            <div className="w-24 h-24 bg-slate-800 rounded-lg overflow-hidden shrink-0 relative border border-white/20">
-              <img src="https://www.google.com/maps/vt/pb=!1m4!1m3!1i14!2i8484!3i10565!2m3!1e0!2sm!3i420120488!3m8!2sen!3sus!5e1105!12m4!1e68!2m2!1sset!2sRoadmap!4e0!5m1!5f2" className="w-full h-full object-cover opacity-60" alt="map" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <MapPin className="text-red-500" size={24} />
-              </div>
-              <div className="absolute bottom-0 left-0 right-0 bg-white/20 text-[8px] text-center py-0.5">Google</div>
+        {/* Info Overlay - HIDE IF CAPTURED (to avoid double info) */}
+        {!capturedImage && (
+          <div className="absolute bottom-4 left-0 right-0 z-20 px-4 pointer-events-none">
+            <div className="flex justify-center gap-6 text-[11px] font-bold tracking-widest text-white/60 mb-4">
+              <span>BERBAGI LOKASI</span>
+              <span className="text-yellow-400 border-b-2 border-yellow-400 pb-1">FOTO</span>
+              <span>VIDEO</span>
+              <span>PELAPORAN</span>
             </div>
 
-            {/* Location & Meta Text */}
-            <div className="flex-1 space-y-1">
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-bold truncate leading-tight uppercase tracking-tight">Kec. Cibungbulang, Jawa Barat</p>
-                <span className="text-xs">🇮🇩</span>
+            <div className="bg-black/60 backdrop-blur-md p-4 rounded-3xl flex gap-4 items-center border border-white/10 pointer-events-auto">
+              {/* Mini Map */}
+              <div className="w-20 h-20 bg-slate-800 rounded-2xl overflow-hidden shrink-0 relative border border-white/20">
+                <img src="https://www.google.com/maps/vt/pb=!1m4!1m3!1i14!2i8484!3i10565!2m3!1e0!2sm!3i420120488!3m8!2sen!3sus!5e1105!12m4!1e68!2m2!1sset!2sRoadmap!4e0!5m1!5f2" className="w-full h-full object-cover opacity-60" alt="map" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <MapPin className="text-red-500" size={20} />
+                </div>
               </div>
-              <p className="text-[10px] text-white/70 line-clamp-2 leading-tight italic">{address}</p>
-              {location && (
-                <p className="text-[10px] font-mono text-white/90">
-                  Lat {location.lat.toFixed(6)}° Long {location.lng.toFixed(6)}°
+
+              <div className="flex-1 space-y-1 overflow-hidden">
+                <p className="text-[13px] font-bold truncate uppercase tracking-tight">Kec. Cibungbulang, Jawa Barat</p>
+                <p className="text-[10px] text-white/70 line-clamp-2 leading-tight italic">{address}</p>
+                {location && (
+                  <p className="text-[10px] font-mono text-white/90">
+                    Lat {location.lat.toFixed(6)}° Long {location.lng.toFixed(6)}°
+                  </p>
+                )}
+                <p className="text-[10px] text-white/60">
+                  {new Date().toLocaleDateString('id-ID')} {new Date().toLocaleTimeString('id-ID')} GMT +07:00
                 </p>
-              )}
-              <p className="text-[10px] text-white/60">
-                {new Date().toLocaleDateString('id-ID')} {new Date().toLocaleTimeString('id-ID')} GMT +07:00
-              </p>
-              
-              {/* Kegiatan Input (Minimalist) */}
-              <input 
-                type="text" 
-                placeholder="NAMA KEGIATAN..."
-                value={kegiatan}
-                onChange={(e) => setKegiatan(e.target.value)}
-                className="w-full bg-white/10 border-b border-white/20 text-[10px] py-1 outline-none placeholder:text-white/30 uppercase tracking-widest mt-1"
-              />
+                <input 
+                  type="text" 
+                  placeholder="NAMA KEGIATAN..."
+                  value={kegiatan}
+                  onChange={(e) => setKegiatan(e.target.value)}
+                  className="w-full bg-white/5 border-b border-white/10 text-[10px] py-1 outline-none placeholder:text-white/30 uppercase tracking-widest"
+                />
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Pro Shutter & Bottom Navigation */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 bg-black/80 backdrop-blur-md pt-4 pb-8">
-        <div className="flex flex-col gap-6">
-          
-          {/* Zoom & Camera Buttons */}
+      {/* Bottom Controls */}
+      <div className="bg-black p-6 pb-10 z-50">
+        <div className="flex flex-col gap-8">
+          {/* Zoom & Shutter */}
           <div className="flex justify-center items-center gap-12">
-             {!capturedImage ? (
-               <>
-                 <span className="text-xs font-bold text-yellow-400 bg-black/40 px-2 py-1 rounded-full border border-yellow-400/30">1x</span>
-                 <button 
+            {!capturedImage ? (
+              <>
+                <span className="text-xs font-bold text-yellow-400">1x</span>
+                <button 
                   onClick={capture}
-                  className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center p-1 group active:scale-95 transition-transform"
+                  className="w-20 h-20 rounded-full border-[6px] border-white/30 flex items-center justify-center p-1 group active:scale-90 transition-all"
                 >
-                  <div className="w-full h-full bg-white rounded-full group-hover:bg-slate-200 transition-colors"></div>
+                  <div className="w-full h-full bg-white rounded-full"></div>
                 </button>
-                <span className="text-xs font-bold text-white/60">2x</span>
-               </>
-             ) : (
-               <div className="flex gap-6 w-full px-12">
-                  <button 
-                    onClick={() => setCapturedImage(null)}
-                    className="flex-1 py-3 px-4 rounded-full font-bold text-xs bg-white/10 border border-white/20 uppercase tracking-widest"
-                  >
-                    Ulang
-                  </button>
-                  <button 
-                    onClick={uploadPhoto}
-                    disabled={isUploading || uploadSuccess}
-                    className="flex-[2] py-3 px-4 rounded-full font-bold text-xs bg-yellow-400 text-black uppercase tracking-widest disabled:opacity-50"
-                  >
-                    {isUploading ? "Mengunggah..." : uploadSuccess ? "Berhasil!" : "Kirim Laporan"}
-                  </button>
-               </div>
-             )}
+                <span className="text-xs font-bold text-white/40">2x</span>
+              </>
+            ) : (
+              <div className="flex gap-4 w-full max-w-sm">
+                <button 
+                  onClick={() => setCapturedImage(null)}
+                  className="flex-1 py-4 rounded-full font-bold text-sm bg-white/10 border border-white/20 uppercase tracking-widest"
+                >
+                  Ulang
+                </button>
+                <button 
+                  onClick={uploadPhoto}
+                  disabled={isUploading || uploadSuccess}
+                  className="flex-[2] py-4 rounded-full font-bold text-sm bg-yellow-400 text-black uppercase tracking-widest shadow-lg shadow-yellow-400/20 disabled:opacity-50"
+                >
+                  {isUploading ? "Mengunggah..." : uploadSuccess ? "BERHASIL!" : "KIRIM LAPORAN"}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Bottom Icons Nav */}
-          <div className="flex justify-around items-center px-4">
-            <div className="flex flex-col items-center gap-1 opacity-60">
-              <ImageIcon size={20} />
-              <span className="text-[8px] uppercase tracking-tighter">Pratinjau</span>
+          {!capturedImage && (
+            <div className="flex justify-around items-center opacity-40">
+              <div className="flex flex-col items-center gap-1"> <ImageIcon size={20} /> <span className="text-[8px] uppercase">Pratinjau</span> </div>
+              <div className="flex flex-col items-center gap-1"> <MapPin size={20} /> <span className="text-[8px] uppercase">Lokasi</span> </div>
+              <div className="flex flex-col items-center gap-1"> <Folder size={20} /> <span className="text-[8px] uppercase">Default</span> </div>
+              <div className="flex flex-col items-center gap-1"> <LayoutGrid size={20} /> <span className="text-[8px] uppercase">Template</span> </div>
             </div>
-            <div className="flex flex-col items-center gap-1 opacity-60">
-              <MapPin size={20} />
-              <span className="text-[8px] uppercase tracking-tighter">Lokasi</span>
-            </div>
-            <div className="w-10"></div> {/* Spacer for Shutter */}
-            <div className="flex flex-col items-center gap-1 opacity-60">
-              <Folder size={20} />
-              <span className="text-[8px] uppercase tracking-tighter">Default</span>
-            </div>
-            <div className="flex flex-col items-center gap-1 opacity-60">
-              <LayoutGrid size={20} />
-              <span className="text-[8px] uppercase tracking-tighter">Template</span>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
