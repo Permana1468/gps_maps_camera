@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import Webcam from 'react-webcam';
-import { Camera, MapPin, Loader2, UploadCloud, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { Camera, MapPin, Loader2, UploadCloud, RefreshCw, CheckCircle2, Paperclip } from 'lucide-react';
 
 export default function CameraApp() {
   const webcamRef = useRef<Webcam>(null);
