@@ -16,9 +16,6 @@
 body {
   color: var(--foreground);
   background-color: var(--background);
-  background-image: url('/nature_line_art_bg.png');
-  background-size: cover;
-  background-attachment: fixed;
   font-family: 'Outfit', sans-serif;
 }
 

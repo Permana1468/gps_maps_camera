@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import Webcam from 'react-webcam';
-import { Camera, MapPin, Loader2, UploadCloud, RefreshCw, CheckCircle2, Paperclip } from 'lucide-react';
+import { Camera, MapPin, Loader2, UploadCloud, RefreshCw, CheckCircle2, Paperclip, ChevronDown } from 'lucide-react';
 
 export default function CameraApp() {
   const webcamRef = useRef<Webcam>(null);
@@ -196,104 +196,130 @@ export default function CameraApp() {
   };
 
   return (
-    <div className="flex flex-col h-full pb-24">
-      <div className="px-8 space-y-6">
-        {/* Input Kegiatan Card */}
-        <div className="bg-white rounded-[32px] p-6 shadow-sm border border-slate-50 space-y-4">
-          <div className="space-y-1">
-            <label className="text-[10px] tracking-[0.2em] font-bold text-[#84a59d] uppercase ml-1">Keterangan Kegiatan</label>
-            <input 
-              type="text" 
-              placeholder="Contoh: Pembangunan Jalan Desa"
-              value={kegiatan}
-              onChange={(e) => setKegiatan(e.target.value)}
-              className="w-full py-2 px-1 text-lg font-medium border-b-2 border-slate-100 focus:border-[#52796f] outline-none transition-all placeholder:text-slate-200"
-            />
-          </div>
+  const [isFormOpen, setIsFormOpen] = useState(true);
 
-          {/* Location Display */}
-          <div className="flex items-start gap-3 pt-2">
-            <div className="w-8 h-8 rounded-full bg-[#f8fafc] flex items-center justify-center shrink-0">
-              <MapPin className="text-[#84a59d]" size={16} />
-            </div>
-            <div className="text-[13px] text-slate-500 flex-1 leading-relaxed italic">
-              {address}
-            </div>
-            <button onClick={fetchLocation} className="p-2 hover:bg-slate-50 rounded-full transition-colors text-[#84a59d]">
-              <RefreshCw size={14} />
-            </button>
-          </div>
-        </div>
-      </div>
+  return (
+    <div className="flex flex-col h-full relative overflow-hidden">
+      {/* Background Layer - Simplified */}
+      <div className="absolute inset-0 bg-[#fdfdfd] z-0"></div>
 
-      {/* Camera / Preview Area */}
-      <div className="mt-8 px-8 flex-1 flex flex-col min-h-[300px]">
-        <div className="relative flex-1 bg-[#fcfcfc] rounded-[40px] overflow-hidden shadow-inner border-[1px] border-slate-100 flex items-center justify-center group">
-          {/* Textured background for empty state */}
-          <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/handmade-paper.png')]"></div>
-          
-          {!capturedImage ? (
-            <>
-              <Webcam
-                audio={false}
-                ref={webcamRef}
-                screenshotFormat="image/jpeg"
-                videoConstraints={{ facingMode: "environment" }}
-                className="w-full h-full object-cover"
-              />
-              {/* Dynamic Overlay Preview */}
-              <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/60 to-transparent text-white pointer-events-none">
-                 <div className="flex items-center gap-4">
-                   <img src="/logo-bogor.png" alt="Logo Bogor" className="w-12 h-auto opacity-95 shrink-0" />
-                   <div className="space-y-0.5 flex-1">
-                     {kegiatan && <p className="text-[#fbbf24] font-bold text-[13px] leading-tight mb-1 uppercase tracking-wider">📝 {kegiatan}</p>}
-                     <p className="text-[10px] opacity-80 leading-tight">📅 {new Date().toLocaleDateString('id-ID')} - {new Date().toLocaleTimeString('id-ID')}</p>
-                     {location && <p className="text-[11px] opacity-90 leading-tight">📍 {location.lat.toFixed(6)}, {location.lng.toFixed(6)}</p>}
-                     <p className="text-[11px] line-clamp-1 opacity-90 leading-tight">🏠 {address.split(',')[0]}</p>
-                   </div>
-                 </div>
-              </div>
-            </>
-          ) : (
-            <img src={capturedImage} alt="Captured" className="w-full h-full object-cover" />
-          )}
-        </div>
-      </div>
-
-      {/* Controls */}
-      <div className="px-8 absolute bottom-8 w-full z-20">
-        {!capturedImage ? (
-          <div className="flex justify-center">
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col relative z-10">
+        
+        {/* Floating Header & Form Card */}
+        <div className="px-6 pt-6 pb-2 space-y-4">
+          <div className="bg-white/80 backdrop-blur-md rounded-[32px] p-4 shadow-sm border border-white/50">
+            {/* Toggle Header */}
             <button 
-              onClick={capture}
-              className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-2xl active:scale-95 transition-transform group relative overflow-hidden"
+              onClick={() => setIsFormOpen(!isFormOpen)}
+              className="w-full flex items-center justify-between p-2"
             >
-              <div className="absolute inset-1 rounded-full border-2 border-slate-100"></div>
-              <div className="w-14 h-14 bg-[#3a5a40] rounded-full flex items-center justify-center">
-                <Camera size={24} className="text-white" />
+              <div className="flex items-center gap-3 text-left">
+                <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center border border-slate-100">
+                  <img src="/logo-bogor.png" alt="Logo Bogor" className="w-6 h-auto" />
+                </div>
+                <div>
+                  <h1 className="text-lg font-serif text-[#3a5a40] leading-none mb-0.5">Buat Dokumen</h1>
+                  <p className="text-[10px] tracking-[0.1em] text-[#84a59d] font-medium uppercase">Desa Cimanggu I</p>
+                </div>
+              </div>
+              <div className={`transition-transform duration-300 ${isFormOpen ? 'rotate-180' : ''}`}>
+                <ChevronDown className="text-[#84a59d]" size={20} />
               </div>
             </button>
+
+            {/* Collapsible Form */}
+            <div className={`overflow-hidden transition-all duration-300 ${isFormOpen ? 'max-h-96 opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
+              <div className="px-2 pb-2 space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[9px] tracking-[0.2em] font-bold text-[#84a59d] uppercase ml-1">Keterangan Kegiatan</label>
+                  <input 
+                    type="text" 
+                    placeholder="Tulis nama kegiatan..."
+                    value={kegiatan}
+                    onChange={(e) => setKegiatan(e.target.value)}
+                    className="w-full py-2 px-1 text-base font-medium border-b border-slate-100 focus:border-[#52796f] outline-none transition-all placeholder:text-slate-200 bg-transparent"
+                  />
+                </div>
+
+                {/* Location Display */}
+                <div className="flex items-start gap-3">
+                  <MapPin className="text-[#84a59d] mt-1 shrink-0" size={14} />
+                  <div className="text-[12px] text-slate-500 flex-1 leading-snug italic">
+                    {address}
+                  </div>
+                  <button onClick={fetchLocation} className="p-1 hover:bg-slate-50 rounded-full transition-colors text-[#84a59d]">
+                    <RefreshCw size={12} />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
+        </div>
+
+        {/* Fullscreen Camera Area */}
+        <div className="flex-1 relative mt-2 px-4 pb-4">
+          <div className="w-full h-full bg-[#111] rounded-[40px] overflow-hidden shadow-2xl relative">
+            {!capturedImage ? (
+              <>
+                <Webcam
+                  audio={false}
+                  ref={webcamRef}
+                  screenshotFormat="image/jpeg"
+                  videoConstraints={{ facingMode: "environment" }}
+                  className="w-full h-full object-cover"
+                />
+                {/* Dynamic Overlay Preview */}
+                <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/70 to-transparent text-white pointer-events-none">
+                   <div className="flex items-end gap-4">
+                     <img src="/logo-bogor.png" alt="Logo Bogor" className="w-10 h-auto opacity-95 shrink-0" />
+                     <div className="space-y-0.5 flex-1 pb-1">
+                       {kegiatan && <p className="text-[#fbbf24] font-bold text-[12px] leading-tight mb-0.5 uppercase tracking-wider">📝 {kegiatan}</p>}
+                       <p className="text-[9px] opacity-80 leading-tight">📅 {new Date().toLocaleDateString('id-ID')} - {new Date().toLocaleTimeString('id-ID')}</p>
+                       {location && <p className="text-[10px] opacity-90 leading-tight">📍 {location.lat.toFixed(6)}, {location.lng.toFixed(6)}</p>}
+                       <p className="text-[10px] line-clamp-1 opacity-90 leading-tight">🏠 {address.split(',')[0]}</p>
+                     </div>
+                   </div>
+                </div>
+              </>
+            ) : (
+              <img src={capturedImage} alt="Captured" className="w-full h-full object-cover" />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Controls - Floating at bottom */}
+      <div className="absolute bottom-8 left-0 right-0 px-8 z-30 flex justify-center">
+        {!capturedImage ? (
+          <button 
+            onClick={capture}
+            className="w-20 h-20 bg-white/20 backdrop-blur-xl rounded-full flex items-center justify-center shadow-2xl active:scale-95 transition-transform group border border-white/30"
+          >
+            <div className="w-16 h-16 bg-[#3a5a40] rounded-full flex items-center justify-center shadow-lg">
+              <Camera size={28} className="text-white" />
+            </div>
+          </button>
         ) : (
-          <div className="bg-white/80 backdrop-blur-xl rounded-[32px] p-2 flex gap-2 border border-white shadow-2xl">
+          <div className="bg-white/90 backdrop-blur-2xl rounded-full p-1.5 flex gap-1.5 border border-white shadow-2xl w-full max-w-sm">
             <button 
               onClick={() => setCapturedImage(null)}
-              className="flex-1 py-4 px-6 rounded-[24px] font-medium text-slate-500 hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
+              className="flex-1 py-4 px-6 rounded-full font-medium text-slate-500 hover:bg-slate-50 transition-colors flex items-center justify-center gap-2 text-sm"
             >
-              <RefreshCw size={18} />
-              Foto Ulang
+              <RefreshCw size={16} />
+              Ulang
             </button>
             <button 
               onClick={uploadPhoto}
               disabled={isUploading || uploadSuccess}
-              className="flex-[1.5] py-4 px-6 rounded-[24px] font-medium bg-[#354f52] text-white shadow-xl shadow-[#354f52]/20 active:scale-[0.98] transition-all flex justify-center items-center gap-2 disabled:opacity-70"
+              className="flex-[1.5] py-4 px-6 rounded-full font-medium bg-[#354f52] text-white shadow-xl active:scale-[0.98] transition-all flex justify-center items-center gap-2 text-sm disabled:opacity-70"
             >
               {isUploading ? (
-                <><Loader2 size={18} className="animate-spin"/> Menunggu...</>
+                <><Loader2 size={16} className="animate-spin"/> Tunggu...</>
               ) : uploadSuccess ? (
-                <><CheckCircle2 size={18}/> Berhasil!</>
+                <><CheckCircle2 size={16}/> Berhasil!</>
               ) : (
-                <><Paperclip size={18} /> Simpan Dokumen</>
+                <><Paperclip size={16} /> Simpan Dokumen</>
               )}
             </button>
           </div>
