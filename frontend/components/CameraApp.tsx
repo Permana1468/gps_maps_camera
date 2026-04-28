@@ -165,14 +165,14 @@ export default function CameraApp() {
     setIsUploading(true);
     try {
       // Send to Flask Backend
-      const response = await fetch('http://localhost:5000/upload', {
+      const response = await fetch('/api/upload', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           image: capturedImage,
-          nama: kegiatan || "Tanpa_Nama",
+          kegiatan: kegiatan || "Tanpa_Nama",
         }),
       });
 
