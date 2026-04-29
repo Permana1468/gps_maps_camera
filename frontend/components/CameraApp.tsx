@@ -90,77 +90,54 @@ export default function CameraApp() {
       if (ctx) {
         ctx.drawImage(img, 0, 0);
 
-        // --- STAMP DESIGN (PRO STYLE) ---
-        const boxHeight = canvas.height * 0.22;
-        const boxY = canvas.height - boxHeight - 20;
-        const boxX = 20;
-        const boxWidth = canvas.width - 40;
-        const borderRadius = 20;
+        const baseSize = Math.min(canvas.width, canvas.height);
 
-        // Draw Translucent Box
-        ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-        ctx.beginPath();
-        ctx.roundRect(boxX, boxY, boxWidth, boxHeight, borderRadius);
-        ctx.fill();
+        // --- STAMP DESIGN (Gradient + Logo) ---
+        const gradientHeight = canvas.height * 0.35;
+        const gradient = ctx.createLinearGradient(0, canvas.height - gradientHeight, 0, canvas.height);
+        gradient.addColorStop(0, "transparent");
+        gradient.addColorStop(1, "rgba(0,0,0,0.85)");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, canvas.height - gradientHeight, canvas.width, gradientHeight);
 
-        // Draw Mini Map Placeholder
-        const mapSize = boxHeight - 30;
-        const mapX = boxX + 15;
-        const mapY = boxY + 15;
-        ctx.fillStyle = "#1e293b";
-        ctx.beginPath();
-        ctx.roundRect(mapX, mapY, mapSize, mapSize, 10);
-        ctx.fill();
-        
-        // Mock Map Lines
-        ctx.strokeStyle = "rgba(255,255,255,0.1)";
-        ctx.lineWidth = 2;
-        for(let i=0; i<5; i++) {
-          ctx.beginPath(); ctx.moveTo(mapX, mapY + (i*mapSize/5)); ctx.lineTo(mapX+mapSize, mapY + (i*mapSize/5)); ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(mapX + (i*mapSize/5), mapY); ctx.lineTo(mapX + (i*mapSize/5), mapY+mapSize); ctx.stroke();
-        }
-        
-        // Draw Red Pin
-        ctx.fillStyle = "#ef4444";
-        ctx.beginPath();
-        ctx.arc(mapX + mapSize/2, mapY + mapSize/2, 6, 0, Math.PI * 2);
-        ctx.fill();
+        const logoImg = new Image();
+        logoImg.src = "/logo-bogor.png";
+        logoImg.onload = () => {
+          const logoSize = baseSize * 0.15;
+          const padding = baseSize * 0.05;
+          ctx.drawImage(logoImg, padding, canvas.height - logoSize - padding, logoSize, logoSize);
+          
+          const textStartX = padding + logoSize + (baseSize * 0.03);
+          let currentY = canvas.height - logoSize - padding + (baseSize * 0.03);
 
-        // Text Content
-        const textX = mapX + mapSize + 20;
-        let textY = mapY + 25;
+          if (kegiatan) {
+            ctx.font = `bold ${baseSize * 0.035}px sans-serif`;
+            ctx.fillStyle = "#fbbf24";
+            ctx.fillText(`📝 ${kegiatan.toUpperCase()}`, textStartX, currentY);
+            currentY += baseSize * 0.045;
+          }
 
-        // Title
-        ctx.font = "bold 24px sans-serif";
-        ctx.fillStyle = "white";
-        ctx.fillText("KEC. CIBUNGBULANG, JAWA BARAT", textX, textY);
-        
-        textY += 30;
-        ctx.font = "italic 16px sans-serif";
-        ctx.fillStyle = "rgba(255,255,255,0.8)";
-        wrapText(ctx, address, textX, textY, boxWidth - mapSize - 60, 20);
+          ctx.font = `${baseSize * 0.025}px sans-serif`;
+          ctx.fillStyle = "white";
+          const now = new Date();
+          ctx.fillText(`📅 ${now.toLocaleDateString('id-ID')} - ${now.toLocaleTimeString('id-ID')}`, textStartX, currentY);
+          currentY += baseSize * 0.035;
 
-        textY += 45;
-        ctx.font = "bold 18px monospace";
-        ctx.fillStyle = "white";
-        if (location) {
-          ctx.fillText(`Lat ${location.lat.toFixed(6)}° Long ${location.lng.toFixed(6)}°`, textX, textY);
-        }
+          if (location) {
+            ctx.font = `${baseSize * 0.025}px sans-serif`;
+            ctx.fillText(`📍 Lat: ${location.lat.toFixed(6)}, Lng: ${location.lng.toFixed(6)}`, textStartX, currentY);
+            currentY += baseSize * 0.035;
+          }
 
-        textY += 25;
-        ctx.font = "16px sans-serif";
-        ctx.fillStyle = "rgba(255,255,255,0.6)";
-        const now = new Date();
-        ctx.fillText(`${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID')} GMT +07:00`, textX, textY);
+          ctx.font = `${baseSize * 0.025}px sans-serif`;
+          wrapText(ctx, `🏠 ${address}`, textStartX, currentY, canvas.width - textStartX - padding, baseSize * 0.035);
 
-        if (kegiatan) {
-          textY += 30;
-          ctx.font = "bold 16px sans-serif";
-          ctx.fillStyle = "#fbbf24";
-          ctx.fillText(`KEGIATAN: ${kegiatan.toUpperCase()}`, textX, textY);
-        }
-
-        setCapturedImage(canvas.toDataURL("image/jpeg", 0.9));
+          setCapturedImage(canvas.toDataURL("image/jpeg", 0.9));
+        };
+        logoImg.onerror = () => {
+           // Fallback if logo fails to load
+           setCapturedImage(canvas.toDataURL("image/jpeg", 0.9));
+        };
       }
     };
   }, [location, address, kegiatan]);
@@ -212,9 +189,6 @@ export default function CameraApp() {
       {/* Top Bar Icons */}
       <div className="p-6 flex justify-between items-center z-40 bg-gradient-to-b from-black/80 to-transparent absolute top-0 left-0 right-0">
         <div className="flex gap-6 items-center">
-          <button onClick={toggleAspectRatio} className="opacity-80 hover:opacity-100 flex items-center justify-center border border-white/50 rounded px-2 py-1 min-w-[3rem]">
-            <span className="text-xs font-bold">{aspectRatio}</span>
-          </button>
           <Zap size={22} className="opacity-80" />
           <div className="flex items-center gap-1 border border-white/30 rounded-md px-1.5 py-0.5 bg-black/20">
             <Paperclip size={14} />
@@ -222,8 +196,11 @@ export default function CameraApp() {
           </div>
         </div>
         <div className="flex gap-6 items-center">
-          <RefreshCw size={22} className="opacity-80 cursor-pointer" />
-          <Settings size={22} className="opacity-80 cursor-pointer" />
+          <RefreshCw size={22} className="opacity-80 cursor-pointer" onClick={fetchLocation} />
+          <button onClick={toggleAspectRatio} className="opacity-80 hover:opacity-100 flex items-center gap-1 bg-black/30 rounded-full px-2 py-1">
+            <Settings size={20} />
+            <span className="text-[10px] font-bold">{aspectRatio}</span>
+          </button>
         </div>
       </div>
 
@@ -244,43 +221,40 @@ export default function CameraApp() {
 
           {/* Info Overlay - HIDE IF CAPTURED */}
           {!capturedImage && (
-            <div className="absolute bottom-4 left-0 right-0 z-20 px-4 pointer-events-none">
-              <div className="bg-black/60 backdrop-blur-md p-4 rounded-3xl flex gap-4 items-center border border-white/10 pointer-events-auto shadow-2xl">
-                {/* Mini Map */}
-                <div className="w-20 h-20 bg-slate-800 rounded-2xl overflow-hidden shrink-0 relative border border-white/20">
-                  <img src="https://www.google.com/maps/vt/pb=!1m4!1m3!1i14!2i8484!3i10565!2m3!1e0!2sm!3i420120488!3m8!2sen!3sus!5e1105!12m4!1e68!2m2!1sset!2sRoadmap!4e0!5m1!5f2" className="w-full h-full object-cover opacity-60" alt="map" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <MapPin className="text-red-500" size={20} />
-                  </div>
-                </div>
-
-                <div className="flex-1 flex flex-col justify-center min-w-0">
-                  <p className="text-[12px] font-bold truncate uppercase tracking-tight text-white mb-0.5">Kec. Cibungbulang, Jawa Barat</p>
-                  <p className="text-[10px] text-white/80 line-clamp-2 leading-snug italic mb-1">{address}</p>
+            <div className="absolute bottom-0 left-0 right-0 z-20 px-6 pb-6 pt-20 bg-gradient-to-t from-black/90 to-transparent pointer-events-none">
+              <div className="flex items-end gap-4 pointer-events-auto">
+                <img src="/logo-bogor.png" alt="Logo Bogor" className="w-16 h-16 object-contain drop-shadow-md" />
+                <div className="flex-1 flex flex-col justify-end min-w-0 pb-1">
+                  {kegiatan && (
+                    <p className="text-[13px] font-bold truncate uppercase tracking-tight text-[#fbbf24] mb-1 drop-shadow-md">📝 {kegiatan}</p>
+                  )}
+                  <p className="text-[11px] text-white drop-shadow-md mb-1 font-medium">
+                    📅 {new Date().toLocaleDateString('id-ID')} - {new Date().toLocaleTimeString('id-ID')}
+                  </p>
                   {location && (
-                    <p className="text-[10px] font-mono text-white/90 mb-0.5">
-                      Lat {location.lat.toFixed(6)}° Long {location.lng.toFixed(6)}°
+                    <p className="text-[11px] text-white drop-shadow-md mb-1 font-medium">
+                      📍 Lat: {location.lat.toFixed(6)}, Lng: {location.lng.toFixed(6)}
                     </p>
                   )}
-                  <p className="text-[9px] text-white/60 mb-1">
-                    {new Date().toLocaleDateString('id-ID')} {new Date().toLocaleTimeString('id-ID')} GMT +07:00
+                  <p className="text-[11px] text-white drop-shadow-md line-clamp-2 leading-snug font-medium">
+                    🏠 {address}
                   </p>
-                  <input 
-                    type="text" 
-                    placeholder="NAMA KEGIATAN..."
-                    value={kegiatan}
-                    onChange={(e) => setKegiatan(e.target.value)}
-                    className="w-full bg-white/5 border-b border-white/10 text-[10px] py-1 outline-none placeholder:text-white/40 uppercase tracking-widest mt-1"
-                  />
                 </div>
               </div>
+              <input 
+                type="text" 
+                placeholder="NAMA KEGIATAN..."
+                value={kegiatan}
+                onChange={(e) => setKegiatan(e.target.value)}
+                className="w-full bg-black/20 border-b border-white/30 text-[11px] py-2 outline-none placeholder:text-white/50 uppercase tracking-widest mt-4 px-2 pointer-events-auto"
+              />
             </div>
           )}
         </div>
       </div>
 
       {/* Bottom Controls */}
-      <div className="absolute bottom-0 left-0 right-0 bg-black/50 backdrop-blur-sm p-6 pb-8 z-50">
+      <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-md p-6 pb-12 z-50">
         <div className="flex flex-col gap-4">
           {/* Zoom & Shutter */}
           <div className="flex justify-center items-center gap-12">
