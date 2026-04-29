@@ -32,10 +32,8 @@ export default function CameraApp() {
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [aspectRatio, setAspectRatio] = useState<'Full' | '16:9' | '4:3' | '1:1'>('Full');
   
-  // New States for Camera Control
   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
   const [isFlashOn, setIsFlashOn] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(1);
   const [orientation, setOrientation] = useState(0);
 
   // Orientation Listener
@@ -73,25 +71,7 @@ export default function CameraApp() {
         setIsFlashOn(nextState);
       } catch (e) { console.error("Flash error:", e); }
     } else {
-      alert("Flash (Torch) tidak didukung di perangkat ini.");
-    }
-  };
-
-  const handleZoom = async (level: number) => {
-    setZoomLevel(level);
-    const stream = webcamRef.current?.video?.srcObject as MediaStream;
-    if (!stream) return;
-    const track = stream.getVideoTracks()[0];
-    const capabilities = (track as any).getCapabilities?.();
-
-    if (capabilities?.zoom) {
-      try {
-        const min = capabilities.zoom.min || 1;
-        const max = capabilities.zoom.max || 10;
-        // Clamp zoom level to capabilities
-        const clampedZoom = Math.min(Math.max(level, min), max);
-        await track.applyConstraints({ advanced: [{ zoom: clampedZoom }] } as any);
-      } catch (e) { console.error("Zoom error:", e); }
+      alert("Flash tidak didukung di perangkat ini.");
     }
   };
 
@@ -114,7 +94,6 @@ export default function CameraApp() {
     }
   };
 
-  // Fetch Location
   const fetchLocation = useCallback(() => {
     setAddress("Mengambil lokasi...");
     if ("geolocation" in navigator) {
@@ -122,24 +101,17 @@ export default function CameraApp() {
         async (position) => {
           const { latitude, longitude } = position.coords;
           setLocation({ lat: latitude, lng: longitude });
-          
           try {
             const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`);
             const data = await response.json();
             setAddress(data.display_name || "Alamat tidak ditemukan");
           } catch (error) {
-            console.error("Error fetching address:", error);
             setAddress(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
           }
         },
-        (error) => {
-          console.error("Error getting location:", error);
-          setAddress("Izin lokasi ditolak");
-        },
+        (error) => setAddress("Izin lokasi ditolak"),
         { enableHighAccuracy: true }
       );
-    } else {
-      setAddress("Geolocation tidak didukung");
     }
   }, []);
 
@@ -165,25 +137,26 @@ export default function CameraApp() {
         ctx.drawImage(img, 0, 0);
         const baseSize = Math.min(canvas.width, canvas.height);
 
-        // --- STAMP DESIGN (Futuristic DJI/Tesla Style) ---
-        const gradientHeight = canvas.height * 0.35;
+        // --- MATCHING UI STAMP DESIGN ---
+        const gradientHeight = canvas.height * 0.4;
         const gradient = ctx.createLinearGradient(0, canvas.height - gradientHeight, 0, canvas.height);
         gradient.addColorStop(0, "transparent");
-        gradient.addColorStop(1, "rgba(0,0,0,0.8)");
+        gradient.addColorStop(0.5, "rgba(0,0,0,0.5)");
+        gradient.addColorStop(1, "rgba(0,0,0,0.9)");
         ctx.fillStyle = gradient;
         ctx.fillRect(0, canvas.height - gradientHeight, canvas.width, gradientHeight);
 
         const logoImg = new Image();
         logoImg.src = "/logo-bogor.png";
         logoImg.onload = () => {
-          const logoSize = baseSize * 0.14;
-          const padding = baseSize * 0.05;
-          ctx.drawImage(logoImg, padding, canvas.height - logoSize - padding, logoSize, logoSize);
+          const logoSize = baseSize * 0.16;
+          const padding = baseSize * 0.08;
+          const textPaddingLeft = baseSize * 0.05;
+          ctx.drawImage(logoImg, padding, canvas.height - logoSize - padding - (baseSize * 0.08), logoSize, logoSize);
           
-          const textStartX = padding + logoSize + (baseSize * 0.04);
-          let currentY = canvas.height - logoSize - padding + (baseSize * 0.02);
+          const textStartX = padding + logoSize + textPaddingLeft;
+          let currentY = canvas.height - logoSize - padding - (baseSize * 0.06);
 
-          // Technical Header
           if (kegiatan) {
             ctx.font = `bold ${baseSize * 0.04}px sans-serif`;
             ctx.fillStyle = "#fbbf24";
@@ -191,25 +164,24 @@ export default function CameraApp() {
             currentY += baseSize * 0.05;
           }
 
-          // Data Rows with Symbols
           ctx.fillStyle = "white";
           
-          // Date & Time
+          // Date
           ctx.font = `${baseSize * 0.028}px sans-serif`;
           const now = new Date();
           ctx.fillText(`📅 ${now.toLocaleDateString('id-ID')} | ${now.toLocaleTimeString('id-ID')}`, textStartX, currentY);
-          currentY += baseSize * 0.04;
+          currentY += baseSize * 0.045;
 
           // GPS
           if (location) {
             ctx.font = `bold ${baseSize * 0.028}px monospace`;
-            ctx.fillText(`📍 GPS: ${location.lat.toFixed(6)}°, ${location.lng.toFixed(6)}°`, textStartX, currentY);
-            currentY += baseSize * 0.04;
+            ctx.fillText(`📍 ${location.lat.toFixed(6)}°, ${location.lng.toFixed(6)}°`, textStartX, currentY);
+            currentY += baseSize * 0.045;
           }
 
           // Address
-          ctx.font = `${baseSize * 0.026}px sans-serif`;
-          wrapText(ctx, `🏠 ${address}`, textStartX, currentY, canvas.width - textStartX - padding, baseSize * 0.035);
+          ctx.font = `${baseSize * 0.028}px sans-serif`;
+          wrapText(ctx, `🏠 ${address}`, textStartX, currentY, canvas.width - textStartX - padding, baseSize * 0.038);
 
           setCapturedImage(canvas.toDataURL("image/jpeg", 0.95));
         };
@@ -223,8 +195,7 @@ export default function CameraApp() {
     let line = '';
     for (let n = 0; n < words.length; n++) {
       const testLine = line + words[n] + ' ';
-      const metrics = ctx.measureText(testLine);
-      if (metrics.width > maxWidth && n > 0) {
+      if (ctx.measureText(testLine).width > maxWidth && n > 0) {
         ctx.fillText(line, x, y);
         line = words[n] + ' ';
         y += lineHeight;
@@ -259,43 +230,39 @@ export default function CameraApp() {
     finally { setIsUploading(false); }
   };
 
-  // Rotation class based on screen orientation
   const rotationClass = orientation === 90 ? "rotate-90" : orientation === 270 ? "-rotate-90" : orientation === 180 ? "rotate-180" : "";
 
   return (
-    <div className="h-screen w-screen bg-black relative overflow-hidden text-white flex flex-col font-sans selection:bg-yellow-400 selection:text-black">
+    <div className="h-screen w-screen bg-black relative overflow-hidden text-white flex flex-col font-sans">
       
-      {/* Top HUD (DJI Style) */}
-      <div className="p-6 flex justify-between items-start z-40 bg-gradient-to-b from-black/60 to-transparent absolute top-0 left-0 right-0">
-        <div className="flex gap-5 items-center">
-          <div className={`flex flex-col transition-transform duration-300 ${rotationClass}`}>
-            <span className="text-[10px] font-bold tracking-[0.2em] text-white/50 uppercase mb-1">Status</span>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
-              <span className="text-xs font-bold tracking-wider">LIVE</span>
-            </div>
+      {/* HUD Bar - Minimalist */}
+      <div className="p-6 flex justify-between items-center z-40 bg-gradient-to-b from-black/80 to-transparent absolute top-0 left-0 right-0">
+        <div className="flex gap-6 items-center">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+            <span className={`text-xs font-black tracking-[0.2em] transition-transform duration-300 ${rotationClass}`}>LIVE</span>
           </div>
-          <div className="w-[1px] h-8 bg-white/10 mx-1"></div>
+          <div className="w-[1px] h-4 bg-white/20 mx-1"></div>
           <Zap 
-            size={20} 
+            size={22} 
             className={`transition-all cursor-pointer ${isFlashOn ? "text-yellow-400 fill-yellow-400" : "opacity-70"} ${rotationClass}`} 
             onClick={toggleFlash}
           />
           <RefreshCw 
-            size={20} 
+            size={22} 
             className={`opacity-70 hover:opacity-100 transition-all cursor-pointer ${rotationClass}`} 
             onClick={toggleCamera} 
           />
         </div>
 
-        <div className="flex gap-6 items-center pt-1">
-          <RotateCcw size={20} className={`opacity-70 hover:opacity-100 transition-all cursor-pointer ${rotationClass}`} onClick={fetchLocation} />
+        <div className="flex gap-6 items-center">
+          <RotateCcw size={22} className={`opacity-70 hover:opacity-100 transition-all cursor-pointer ${rotationClass}`} onClick={fetchLocation} />
           <button 
             onClick={toggleAspectRatio} 
-            className={`flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/10 rounded-full px-3 py-1.5 hover:bg-white/20 transition-all active:scale-95 ${rotationClass}`}
+            className={`flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/10 rounded-full px-4 py-1.5 hover:bg-white/20 transition-all active:scale-95 ${rotationClass}`}
           >
-            <Settings size={16} className="opacity-80" />
-            <span className="text-[10px] font-bold tracking-widest">{aspectRatio}</span>
+            <Settings size={18} className="opacity-80" />
+            <span className="text-[11px] font-black tracking-[0.1em]">{aspectRatio}</span>
           </button>
         </div>
       </div>
@@ -312,46 +279,43 @@ export default function CameraApp() {
               className="w-full h-full object-cover"
             />
           ) : (
-            <img src={capturedImage} alt="Captured" className="w-full h-full object-contain bg-black transition-opacity duration-500" />
+            <img src={capturedImage} alt="Captured" className="w-full h-full object-contain bg-black" />
           )}
 
           {/* Futuristic Overlay HUD */}
           {!capturedImage && (
-            <div className={`absolute bottom-0 left-0 right-0 z-20 px-8 pb-10 pt-32 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none transition-transform duration-300 ${rotationClass}`}>
+            <div className={`absolute bottom-0 left-0 right-0 z-20 px-8 pb-14 pt-32 bg-gradient-to-t from-black/95 via-black/30 to-transparent pointer-events-none transition-transform duration-300 ${rotationClass}`}>
               <div className="flex items-end gap-6 pointer-events-auto">
-                <div className="relative group shrink-0">
-                  <div className="absolute -inset-2 bg-yellow-400/20 rounded-full blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
-                  <img src="/logo-bogor.png" alt="Logo" className="w-20 h-20 object-contain drop-shadow-2xl relative" />
-                </div>
+                <img src="/logo-bogor.png" alt="Logo" className="w-20 h-20 object-contain drop-shadow-2xl relative mb-2" />
                 
-                <div className="flex-1 flex flex-col justify-end min-w-0 pb-1 space-y-2">
+                <div className="flex-1 flex flex-col justify-end min-w-0 pb-1 space-y-2.5">
                   {kegiatan && (
                     <div className="flex items-center gap-2">
-                      <div className="w-1 h-4 bg-yellow-400 rounded-full"></div>
-                      <p className="text-[14px] font-black truncate uppercase tracking-[0.1em] text-yellow-400 drop-shadow-md">{kegiatan}</p>
+                      <div className="w-1.5 h-4 bg-yellow-400 rounded-full"></div>
+                      <p className="text-[15px] font-black truncate uppercase tracking-[0.05em] text-yellow-400 drop-shadow-md">{kegiatan}</p>
                     </div>
                   )}
                   
-                  <div className="grid grid-cols-1 gap-2">
-                    <div className="flex items-center gap-2.5 text-white/90">
-                      <Calendar size={14} className="text-white/60" />
-                      <span className="text-[11px] font-medium tracking-wide">
-                        {new Date().toLocaleDateString('id-ID')} <span className="text-white/30 mx-1">|</span> {new Date().toLocaleTimeString('id-ID')}
+                  <div className="grid grid-cols-1 gap-2.5">
+                    <div className="flex items-center gap-3 text-white">
+                      <Calendar size={14} className="opacity-60" />
+                      <span className="text-[12px] font-bold tracking-tight">
+                        {new Date().toLocaleDateString('id-ID')} <span className="opacity-30 mx-1">|</span> {new Date().toLocaleTimeString('id-ID')}
                       </span>
                     </div>
                     
                     {location && (
-                      <div className="flex items-center gap-2.5 text-white/90">
-                        <Navigation size={14} className="text-white/60" />
-                        <span className="text-[11px] font-mono font-bold tracking-tight">
+                      <div className="flex items-center gap-3 text-white">
+                        <MapPin size={14} className="opacity-60" />
+                        <span className="text-[12px] font-mono font-black tracking-tighter">
                           {location.lat.toFixed(6)}°, {location.lng.toFixed(6)}°
                         </span>
                       </div>
                     )}
                     
-                    <div className="flex items-start gap-2.5 text-white/90">
-                      <Home size={14} className="text-white/60 mt-0.5 shrink-0" />
-                      <p className="text-[11px] font-medium leading-relaxed line-clamp-2 italic opacity-80">
+                    <div className="flex items-start gap-3 text-white">
+                      <Home size={14} className="opacity-60 mt-0.5 shrink-0" />
+                      <p className="text-[12px] font-bold leading-snug line-clamp-2 opacity-90">
                         {address}
                       </p>
                     </div>
@@ -360,13 +324,13 @@ export default function CameraApp() {
               </div>
 
               {/* Minimalist Input */}
-              <div className="mt-6 relative pointer-events-auto max-w-sm">
+              <div className="mt-8 relative pointer-events-auto">
                 <input 
                   type="text" 
                   placeholder="ID KEGIATAN / KETERANGAN..."
                   value={kegiatan}
                   onChange={(e) => setKegiatan(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-[11px] font-bold outline-none placeholder:text-white/20 uppercase tracking-[0.2em] focus:bg-white/10 focus:border-yellow-400/50 transition-all backdrop-blur-sm"
+                  className="w-full bg-white/10 border border-white/20 rounded-2xl py-4 px-6 text-[12px] font-black outline-none placeholder:text-white/30 uppercase tracking-[0.1em] focus:bg-white/15 focus:border-yellow-400/50 transition-all backdrop-blur-md"
                 />
               </div>
             </div>
@@ -374,66 +338,37 @@ export default function CameraApp() {
         </div>
       </div>
 
-      {/* Futuristic Control Bar */}
-      <div className="bg-black/80 backdrop-blur-xl border-t border-white/5 px-8 pt-8 pb-12 z-50">
-        <div className="max-w-md mx-auto flex flex-col gap-8">
-          <div className="flex justify-center items-center gap-16">
-            {!capturedImage ? (
-              <>
-                <button 
-                  onClick={() => handleZoom(0.5)}
-                  className={`flex flex-col items-center gap-1 transition-all ${zoomLevel === 0.5 ? "text-yellow-400 opacity-100" : "opacity-40"}`}
-                >
-                  <span className="text-[10px] font-black tracking-tighter">0.5</span>
-                  {zoomLevel === 0.5 && <div className="w-1 h-1 rounded-full bg-yellow-400 shadow-[0_0_4px_rgba(250,204,21,0.6)]"></div>}
-                </button>
-                
-                <button 
-                  onClick={capture}
-                  className="relative group active:scale-95 transition-all duration-200"
-                >
-                  <div className="absolute -inset-4 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition duration-500"></div>
-                  <div className="w-22 h-22 rounded-full border-[3px] border-white/20 flex items-center justify-center p-1.5 relative">
-                    <div className="w-full h-full bg-white rounded-full shadow-[0_0_20px_rgba(255,255,255,0.4)]"></div>
-                  </div>
-                </button>
-
-                <div className="flex gap-4 items-center">
-                  <button 
-                    onClick={() => handleZoom(1)}
-                    className={`flex flex-col items-center gap-1 transition-all ${zoomLevel === 1 ? "text-yellow-400 opacity-100" : "opacity-40"}`}
-                  >
-                    <span className="text-[10px] font-black tracking-tighter">1.0</span>
-                    {zoomLevel === 1 && <div className="w-1 h-1 rounded-full bg-yellow-400 shadow-[0_0_4px_rgba(250,204,21,0.6)]"></div>}
-                  </button>
-                  <button 
-                    onClick={() => handleZoom(2)}
-                    className={`flex flex-col items-center gap-1 transition-all ${zoomLevel === 2 ? "text-yellow-400 opacity-100" : "opacity-40"}`}
-                  >
-                    <span className="text-[10px] font-black tracking-tighter">2.0</span>
-                    {zoomLevel === 2 && <div className="w-1 h-1 rounded-full bg-yellow-400 shadow-[0_0_4px_rgba(250,204,21,0.6)]"></div>}
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div className="flex gap-4 w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <button 
-                  onClick={() => setCapturedImage(null)}
-                  className="flex-1 py-4 rounded-2xl font-black text-xs bg-white/5 border border-white/10 uppercase tracking-[0.2em] hover:bg-white/10 transition-all active:scale-95"
-                >
-                  Ulang
-                </button>
-                <button 
-                  onClick={uploadPhoto}
-                  disabled={isUploading || uploadSuccess}
-                  className="flex-[2] py-4 rounded-2xl font-black text-xs bg-yellow-400 text-black uppercase tracking-[0.2em] shadow-[0_10px_30px_rgba(250,204,21,0.3)] hover:bg-yellow-300 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
-                >
-                  {isUploading ? <Loader2 className="animate-spin" size={16} /> : uploadSuccess ? <CheckCircle2 size={16} /> : null}
-                  {isUploading ? "PROCESS..." : uploadSuccess ? "SUCCESS" : "UPLOAD REPORT"}
-                </button>
+      {/* Transparent Control Bar */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent pt-12 pb-14 z-50 flex justify-center pointer-events-none">
+        <div className="w-full max-w-md flex justify-center items-center pointer-events-auto">
+          {!capturedImage ? (
+            <button 
+              onClick={capture}
+              className="relative group active:scale-90 transition-all duration-200"
+            >
+              <div className="absolute -inset-6 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition duration-500"></div>
+              <div className="w-24 h-24 rounded-full border-[4px] border-white/40 flex items-center justify-center p-2 relative">
+                <div className="w-full h-full bg-white rounded-full shadow-[0_0_30px_rgba(255,255,255,0.5)]"></div>
               </div>
-            )}
-          </div>
+            </button>
+          ) : (
+            <div className="flex gap-6 w-full px-8 animate-in fade-in slide-in-from-bottom-6 duration-500">
+              <button 
+                onClick={() => setCapturedImage(null)}
+                className="flex-1 py-5 rounded-2xl font-black text-sm bg-white/10 border border-white/20 uppercase tracking-[0.2em] hover:bg-white/20 transition-all active:scale-95 backdrop-blur-md"
+              >
+                Ulang
+              </button>
+              <button 
+                onClick={uploadPhoto}
+                disabled={isUploading || uploadSuccess}
+                className="flex-[2] py-5 rounded-2xl font-black text-sm bg-yellow-400 text-black uppercase tracking-[0.2em] shadow-[0_15px_40px_rgba(250,204,21,0.4)] hover:bg-yellow-300 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
+              >
+                {isUploading ? <Loader2 className="animate-spin" size={20} /> : uploadSuccess ? <CheckCircle2 size={20} /> : null}
+                {isUploading ? "PROCESS..." : uploadSuccess ? "SUCCESS" : "UPLOAD REPORT"}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
