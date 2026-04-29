@@ -230,8 +230,6 @@ export default function CameraApp() {
     finally { setIsUploading(false); }
   };
 
-  const rotationClass = orientation === 90 ? "rotate-90" : orientation === 270 ? "-rotate-90" : orientation === 180 ? "rotate-180" : "";
-
   return (
     <div className="h-screen w-screen bg-black relative overflow-hidden text-white flex flex-col font-sans">
       
@@ -240,26 +238,25 @@ export default function CameraApp() {
         <div className="flex gap-6 items-center">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
-            <span className={`text-xs font-black tracking-[0.2em] transition-transform duration-300 ${rotationClass}`}>LIVE</span>
+            <span className="text-xs font-black tracking-[0.2em]">LIVE</span>
           </div>
           <div className="w-[1px] h-4 bg-white/20 mx-1"></div>
           <Zap 
             size={22} 
-            className={`transition-all cursor-pointer ${isFlashOn ? "text-yellow-400 fill-yellow-400" : "opacity-70"} ${rotationClass}`} 
+            className={`transition-all cursor-pointer ${isFlashOn ? "text-yellow-400 fill-yellow-400" : "opacity-70"}`} 
             onClick={toggleFlash}
           />
           <RefreshCw 
             size={22} 
-            className={`opacity-70 hover:opacity-100 transition-all cursor-pointer ${rotationClass}`} 
+            className="opacity-70 hover:opacity-100 transition-all cursor-pointer" 
             onClick={toggleCamera} 
           />
         </div>
 
         <div className="flex gap-6 items-center">
-          <RotateCcw size={22} className={`opacity-70 hover:opacity-100 transition-all cursor-pointer ${rotationClass}`} onClick={fetchLocation} />
           <button 
             onClick={toggleAspectRatio} 
-            className={`flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/10 rounded-full px-4 py-1.5 hover:bg-white/20 transition-all active:scale-95 ${rotationClass}`}
+            className="flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/10 rounded-full px-4 py-1.5 hover:bg-white/20 transition-all active:scale-95"
           >
             <Settings size={18} className="opacity-80" />
             <span className="text-[11px] font-black tracking-[0.1em]">{aspectRatio}</span>
@@ -284,7 +281,7 @@ export default function CameraApp() {
 
           {/* Futuristic Overlay HUD */}
           {!capturedImage && (
-            <div className={`absolute bottom-0 left-0 right-0 z-20 px-8 pb-14 pt-32 bg-gradient-to-t from-black/95 via-black/30 to-transparent pointer-events-none transition-transform duration-300 ${rotationClass}`}>
+            <div className="absolute bottom-0 left-0 right-0 z-20 px-8 pb-14 pt-32 bg-gradient-to-t from-black/95 via-black/30 to-transparent pointer-events-none transition-transform duration-300">
               <div className="flex items-end gap-6 pointer-events-auto">
                 <img src="/logo-bogor.png" alt="Logo" className="w-20 h-20 object-contain drop-shadow-2xl relative mb-2" />
                 
