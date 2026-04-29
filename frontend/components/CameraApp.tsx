@@ -2,7 +2,24 @@
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import Webcam from 'react-webcam';
-import { Camera, MapPin, Loader2, RefreshCw, CheckCircle2, Paperclip, Zap, Settings, Grid, Image as ImageIcon, Folder, LayoutGrid } from 'lucide-react';
+import { 
+  Camera, 
+  MapPin, 
+  Loader2, 
+  RefreshCw, 
+  CheckCircle2, 
+  Paperclip, 
+  Zap, 
+  Settings, 
+  Grid, 
+  Image as ImageIcon, 
+  Folder, 
+  LayoutGrid,
+  Calendar,
+  Home,
+  Clock,
+  Navigation
+} from 'lucide-react';
 
 export default function CameraApp() {
   const webcamRef = useRef<Webcam>(null);
@@ -22,12 +39,11 @@ export default function CameraApp() {
 
   const getVideoConstraints = () => {
     const base = { facingMode: "environment" };
-    // For mobile (portrait), width is smaller than height, so 16:9 aspect ratio is actually 9/16 = 0.5625
     switch (aspectRatio) {
       case '16:9': return { ...base, aspectRatio: 9/16 };
       case '4:3': return { ...base, aspectRatio: 3/4 };
       case '1:1': return { ...base, aspectRatio: 1 };
-      case 'Full': default: return base; // let it fill the space
+      case 'Full': default: return base;
     }
   };
 
@@ -89,55 +105,57 @@ export default function CameraApp() {
       
       if (ctx) {
         ctx.drawImage(img, 0, 0);
-
         const baseSize = Math.min(canvas.width, canvas.height);
 
-        // --- STAMP DESIGN (Gradient + Logo) ---
+        // --- STAMP DESIGN (Futuristic DJI/Tesla Style) ---
         const gradientHeight = canvas.height * 0.35;
         const gradient = ctx.createLinearGradient(0, canvas.height - gradientHeight, 0, canvas.height);
         gradient.addColorStop(0, "transparent");
-        gradient.addColorStop(1, "rgba(0,0,0,0.85)");
+        gradient.addColorStop(1, "rgba(0,0,0,0.8)");
         ctx.fillStyle = gradient;
         ctx.fillRect(0, canvas.height - gradientHeight, canvas.width, gradientHeight);
 
         const logoImg = new Image();
         logoImg.src = "/logo-bogor.png";
         logoImg.onload = () => {
-          const logoSize = baseSize * 0.15;
+          const logoSize = baseSize * 0.14;
           const padding = baseSize * 0.05;
           ctx.drawImage(logoImg, padding, canvas.height - logoSize - padding, logoSize, logoSize);
           
-          const textStartX = padding + logoSize + (baseSize * 0.03);
-          let currentY = canvas.height - logoSize - padding + (baseSize * 0.03);
+          const textStartX = padding + logoSize + (baseSize * 0.04);
+          let currentY = canvas.height - logoSize - padding + (baseSize * 0.02);
 
+          // Technical Header
           if (kegiatan) {
-            ctx.font = `bold ${baseSize * 0.035}px sans-serif`;
+            ctx.font = `bold ${baseSize * 0.04}px sans-serif`;
             ctx.fillStyle = "#fbbf24";
-            ctx.fillText(`📝 ${kegiatan.toUpperCase()}`, textStartX, currentY);
-            currentY += baseSize * 0.045;
+            ctx.fillText(kegiatan.toUpperCase(), textStartX, currentY);
+            currentY += baseSize * 0.05;
           }
 
-          ctx.font = `${baseSize * 0.025}px sans-serif`;
+          // Data Rows with Symbols
           ctx.fillStyle = "white";
+          
+          // Date & Time
+          ctx.font = `${baseSize * 0.028}px sans-serif`;
           const now = new Date();
-          ctx.fillText(`📅 ${now.toLocaleDateString('id-ID')} - ${now.toLocaleTimeString('id-ID')}`, textStartX, currentY);
-          currentY += baseSize * 0.035;
+          ctx.fillText(`📅 ${now.toLocaleDateString('id-ID')} | ${now.toLocaleTimeString('id-ID')}`, textStartX, currentY);
+          currentY += baseSize * 0.04;
 
+          // GPS
           if (location) {
-            ctx.font = `${baseSize * 0.025}px sans-serif`;
-            ctx.fillText(`📍 Lat: ${location.lat.toFixed(6)}, Lng: ${location.lng.toFixed(6)}`, textStartX, currentY);
-            currentY += baseSize * 0.035;
+            ctx.font = `bold ${baseSize * 0.028}px monospace`;
+            ctx.fillText(`📍 GPS: ${location.lat.toFixed(6)}°, ${location.lng.toFixed(6)}°`, textStartX, currentY);
+            currentY += baseSize * 0.04;
           }
 
-          ctx.font = `${baseSize * 0.025}px sans-serif`;
+          // Address
+          ctx.font = `${baseSize * 0.026}px sans-serif`;
           wrapText(ctx, `🏠 ${address}`, textStartX, currentY, canvas.width - textStartX - padding, baseSize * 0.035);
 
-          setCapturedImage(canvas.toDataURL("image/jpeg", 0.9));
+          setCapturedImage(canvas.toDataURL("image/jpeg", 0.95));
         };
-        logoImg.onerror = () => {
-           // Fallback if logo fails to load
-           setCapturedImage(canvas.toDataURL("image/jpeg", 0.9));
-        };
+        logoImg.onerror = () => setCapturedImage(canvas.toDataURL("image/jpeg", 0.95));
       }
     };
   }, [location, address, kegiatan]);
@@ -184,28 +202,37 @@ export default function CameraApp() {
   };
 
   return (
-    <div className="h-screen w-screen bg-black relative overflow-hidden text-white flex flex-col justify-between">
+    <div className="h-screen w-screen bg-black relative overflow-hidden text-white flex flex-col font-sans selection:bg-yellow-400 selection:text-black">
       
-      {/* Top Bar Icons */}
-      <div className="p-6 flex justify-between items-center z-40 bg-gradient-to-b from-black/80 to-transparent absolute top-0 left-0 right-0">
-        <div className="flex gap-6 items-center">
-          <Zap size={22} className="opacity-80" />
-          <div className="flex items-center gap-1 border border-white/30 rounded-md px-1.5 py-0.5 bg-black/20">
-            <Paperclip size={14} />
-            <span className="text-[10px] font-bold">+</span>
+      {/* Top HUD (DJI Style) */}
+      <div className="p-6 flex justify-between items-start z-40 bg-gradient-to-b from-black/60 to-transparent absolute top-0 left-0 right-0">
+        <div className="flex gap-5 items-center">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold tracking-[0.2em] text-white/50 uppercase mb-1">Status</span>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+              <span className="text-xs font-bold tracking-wider">LIVE</span>
+            </div>
           </div>
+          <div className="w-[1px] h-8 bg-white/10 mx-1"></div>
+          <Zap size={20} className="opacity-70 hover:opacity-100 transition-opacity cursor-pointer" />
+          <Paperclip size={20} className="opacity-70 hover:opacity-100 transition-opacity cursor-pointer" />
         </div>
-        <div className="flex gap-6 items-center">
-          <RefreshCw size={22} className="opacity-80 cursor-pointer" onClick={fetchLocation} />
-          <button onClick={toggleAspectRatio} className="opacity-80 hover:opacity-100 flex items-center gap-1 bg-black/30 rounded-full px-2 py-1">
-            <Settings size={20} />
-            <span className="text-[10px] font-bold">{aspectRatio}</span>
+
+        <div className="flex gap-6 items-center pt-1">
+          <RefreshCw size={20} className="opacity-70 hover:opacity-100 transition-opacity cursor-pointer active:rotate-180 transition-transform duration-500" onClick={fetchLocation} />
+          <button 
+            onClick={toggleAspectRatio} 
+            className="flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/10 rounded-full px-3 py-1.5 hover:bg-white/20 transition-all active:scale-95"
+          >
+            <Settings size={16} className="opacity-80" />
+            <span className="text-[10px] font-bold tracking-widest">{aspectRatio}</span>
           </button>
         </div>
       </div>
 
       {/* Main Viewport Container */}
-      <div className="flex-1 flex flex-col items-center justify-center w-full relative pt-20 pb-40">
+      <div className="flex-1 flex flex-col items-center justify-center w-full relative">
         <div className={getWrapperClasses()}>
           {!capturedImage ? (
             <Webcam
@@ -216,73 +243,108 @@ export default function CameraApp() {
               className="w-full h-full object-cover"
             />
           ) : (
-            <img src={capturedImage} alt="Captured" className="w-full h-full object-contain bg-black" />
+            <img src={capturedImage} alt="Captured" className="w-full h-full object-contain bg-black transition-opacity duration-500" />
           )}
 
-          {/* Info Overlay - HIDE IF CAPTURED */}
+          {/* Futuristic Overlay HUD */}
           {!capturedImage && (
-            <div className="absolute bottom-0 left-0 right-0 z-20 px-6 pb-6 pt-20 bg-gradient-to-t from-black/90 to-transparent pointer-events-none">
-              <div className="flex items-end gap-4 pointer-events-auto">
-                <img src="/logo-bogor.png" alt="Logo Bogor" className="w-16 h-16 object-contain drop-shadow-md" />
-                <div className="flex-1 flex flex-col justify-end min-w-0 pb-1">
+            <div className="absolute bottom-0 left-0 right-0 z-20 px-8 pb-10 pt-32 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none">
+              <div className="flex items-end gap-6 pointer-events-auto">
+                <div className="relative group shrink-0">
+                  <div className="absolute -inset-2 bg-yellow-400/20 rounded-full blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
+                  <img src="/logo-bogor.png" alt="Logo" className="w-20 h-20 object-contain drop-shadow-2xl relative" />
+                </div>
+                
+                <div className="flex-1 flex flex-col justify-end min-w-0 pb-1 space-y-2">
                   {kegiatan && (
-                    <p className="text-[13px] font-bold truncate uppercase tracking-tight text-[#fbbf24] mb-1 drop-shadow-md">📝 {kegiatan}</p>
+                    <div className="flex items-center gap-2">
+                      <div className="w-1 h-4 bg-yellow-400 rounded-full"></div>
+                      <p className="text-[14px] font-black truncate uppercase tracking-[0.1em] text-yellow-400 drop-shadow-md">{kegiatan}</p>
+                    </div>
                   )}
-                  <p className="text-[11px] text-white drop-shadow-md mb-1 font-medium">
-                    📅 {new Date().toLocaleDateString('id-ID')} - {new Date().toLocaleTimeString('id-ID')}
-                  </p>
-                  {location && (
-                    <p className="text-[11px] text-white drop-shadow-md mb-1 font-medium">
-                      📍 Lat: {location.lat.toFixed(6)}, Lng: {location.lng.toFixed(6)}
-                    </p>
-                  )}
-                  <p className="text-[11px] text-white drop-shadow-md line-clamp-2 leading-snug font-medium">
-                    🏠 {address}
-                  </p>
+                  
+                  <div className="grid grid-cols-1 gap-2">
+                    <div className="flex items-center gap-2.5 text-white/90">
+                      <Calendar size={14} className="text-white/60" />
+                      <span className="text-[11px] font-medium tracking-wide">
+                        {new Date().toLocaleDateString('id-ID')} <span className="text-white/30 mx-1">|</span> {new Date().toLocaleTimeString('id-ID')}
+                      </span>
+                    </div>
+                    
+                    {location && (
+                      <div className="flex items-center gap-2.5 text-white/90">
+                        <Navigation size={14} className="text-white/60" />
+                        <span className="text-[11px] font-mono font-bold tracking-tight">
+                          {location.lat.toFixed(6)}°, {location.lng.toFixed(6)}°
+                        </span>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-start gap-2.5 text-white/90">
+                      <Home size={14} className="text-white/60 mt-0.5 shrink-0" />
+                      <p className="text-[11px] font-medium leading-relaxed line-clamp-2 italic opacity-80">
+                        {address}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <input 
-                type="text" 
-                placeholder="NAMA KEGIATAN..."
-                value={kegiatan}
-                onChange={(e) => setKegiatan(e.target.value)}
-                className="w-full bg-black/20 border-b border-white/30 text-[11px] py-2 outline-none placeholder:text-white/50 uppercase tracking-widest mt-4 px-2 pointer-events-auto"
-              />
+
+              {/* Minimalist Input */}
+              <div className="mt-6 relative pointer-events-auto max-w-sm">
+                <input 
+                  type="text" 
+                  placeholder="ID KEGIATAN / KETERANGAN..."
+                  value={kegiatan}
+                  onChange={(e) => setKegiatan(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-[11px] font-bold outline-none placeholder:text-white/20 uppercase tracking-[0.2em] focus:bg-white/10 focus:border-yellow-400/50 transition-all backdrop-blur-sm"
+                />
+              </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Bottom Controls */}
-      <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-md p-6 pb-12 z-50">
-        <div className="flex flex-col gap-4">
-          {/* Zoom & Shutter */}
-          <div className="flex justify-center items-center gap-12">
+      {/* Futuristic Control Bar */}
+      <div className="bg-black/80 backdrop-blur-xl border-t border-white/5 px-8 pt-8 pb-12 z-50">
+        <div className="max-w-md mx-auto flex flex-col gap-8">
+          <div className="flex justify-center items-center gap-16">
             {!capturedImage ? (
               <>
-                <span className="text-xs font-bold text-yellow-400">1x</span>
+                <div className="flex flex-col items-center gap-1 opacity-40">
+                  <span className="text-[10px] font-black tracking-tighter">0.5</span>
+                </div>
+                
                 <button 
                   onClick={capture}
-                  className="w-20 h-20 rounded-full border-[6px] border-white/30 flex items-center justify-center p-1 group active:scale-90 transition-all"
+                  className="relative group active:scale-95 transition-all duration-200"
                 >
-                  <div className="w-full h-full bg-white rounded-full"></div>
+                  <div className="absolute -inset-4 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition duration-500"></div>
+                  <div className="w-22 h-22 rounded-full border-[3px] border-white/20 flex items-center justify-center p-1.5 relative">
+                    <div className="w-full h-full bg-white rounded-full shadow-[0_0_20px_rgba(255,255,255,0.4)]"></div>
+                  </div>
                 </button>
-                <span className="text-xs font-bold text-white/40">2x</span>
+
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-[10px] font-black tracking-tighter text-yellow-400">1.0</span>
+                  <div className="w-1 h-1 rounded-full bg-yellow-400 shadow-[0_0_4px_rgba(250,204,21,0.6)]"></div>
+                </div>
               </>
             ) : (
-              <div className="flex gap-4 w-full max-w-sm">
+              <div className="flex gap-4 w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <button 
                   onClick={() => setCapturedImage(null)}
-                  className="flex-1 py-4 rounded-full font-bold text-sm bg-white/10 border border-white/20 uppercase tracking-widest"
+                  className="flex-1 py-4 rounded-2xl font-black text-xs bg-white/5 border border-white/10 uppercase tracking-[0.2em] hover:bg-white/10 transition-all active:scale-95"
                 >
                   Ulang
                 </button>
                 <button 
                   onClick={uploadPhoto}
                   disabled={isUploading || uploadSuccess}
-                  className="flex-[2] py-4 rounded-full font-bold text-sm bg-yellow-400 text-black uppercase tracking-widest shadow-lg shadow-yellow-400/20 disabled:opacity-50"
+                  className="flex-[2] py-4 rounded-2xl font-black text-xs bg-yellow-400 text-black uppercase tracking-[0.2em] shadow-[0_10px_30px_rgba(250,204,21,0.3)] hover:bg-yellow-300 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
                 >
-                  {isUploading ? "Mengunggah..." : uploadSuccess ? "BERHASIL!" : "KIRIM LAPORAN"}
+                  {isUploading ? <Loader2 className="animate-spin" size={16} /> : uploadSuccess ? <CheckCircle2 size={16} /> : null}
+                  {isUploading ? "PROCESS..." : uploadSuccess ? "SUCCESS" : "UPLOAD REPORT"}
                 </button>
               </div>
             )}
