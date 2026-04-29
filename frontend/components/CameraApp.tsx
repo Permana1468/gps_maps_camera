@@ -18,7 +18,8 @@ import {
   Calendar,
   Home,
   Clock,
-  Navigation
+  Navigation,
+  RotateCcw
 } from 'lucide-react';
 
 export default function CameraApp() {
@@ -30,6 +31,24 @@ export default function CameraApp() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [aspectRatio, setAspectRatio] = useState<'Full' | '16:9' | '4:3' | '1:1'>('Full');
+  
+  // New States for Camera Control
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
+  const [isFlashOn, setIsFlashOn] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [orientation, setOrientation] = useState(0);
+
+  // Orientation Listener
+  useEffect(() => {
+    const handleOrientation = () => {
+      if (typeof window !== "undefined" && window.screen.orientation) {
+        setOrientation(window.screen.orientation.angle);
+      }
+    };
+    window.addEventListener("orientationchange", handleOrientation);
+    handleOrientation();
+    return () => window.removeEventListener("orientationchange", handleOrientation);
+  }, []);
 
   const toggleAspectRatio = () => {
     const ratios: ('Full' | '16:9' | '4:3' | '1:1')[] = ['Full', '16:9', '4:3', '1:1'];
@@ -37,8 +56,47 @@ export default function CameraApp() {
     setAspectRatio(ratios[(currentIndex + 1) % ratios.length]);
   };
 
+  const toggleCamera = () => {
+    setFacingMode(prev => prev === "environment" ? "user" : "environment");
+  };
+
+  const toggleFlash = async () => {
+    const stream = webcamRef.current?.video?.srcObject as MediaStream;
+    if (!stream) return;
+    const track = stream.getVideoTracks()[0];
+    const capabilities = (track as any).getCapabilities?.();
+
+    if (capabilities?.torch) {
+      const nextState = !isFlashOn;
+      try {
+        await track.applyConstraints({ advanced: [{ torch: nextState }] } as any);
+        setIsFlashOn(nextState);
+      } catch (e) { console.error("Flash error:", e); }
+    } else {
+      alert("Flash (Torch) tidak didukung di perangkat ini.");
+    }
+  };
+
+  const handleZoom = async (level: number) => {
+    setZoomLevel(level);
+    const stream = webcamRef.current?.video?.srcObject as MediaStream;
+    if (!stream) return;
+    const track = stream.getVideoTracks()[0];
+    const capabilities = (track as any).getCapabilities?.();
+
+    if (capabilities?.zoom) {
+      try {
+        const min = capabilities.zoom.min || 1;
+        const max = capabilities.zoom.max || 10;
+        // Clamp zoom level to capabilities
+        const clampedZoom = Math.min(Math.max(level, min), max);
+        await track.applyConstraints({ advanced: [{ zoom: clampedZoom }] } as any);
+      } catch (e) { console.error("Zoom error:", e); }
+    }
+  };
+
   const getVideoConstraints = () => {
-    const base = { facingMode: "environment" };
+    const base = { facingMode };
     switch (aspectRatio) {
       case '16:9': return { ...base, aspectRatio: 9/16 };
       case '4:3': return { ...base, aspectRatio: 3/4 };
@@ -201,13 +259,16 @@ export default function CameraApp() {
     finally { setIsUploading(false); }
   };
 
+  // Rotation class based on screen orientation
+  const rotationClass = orientation === 90 ? "rotate-90" : orientation === 270 ? "-rotate-90" : orientation === 180 ? "rotate-180" : "";
+
   return (
     <div className="h-screen w-screen bg-black relative overflow-hidden text-white flex flex-col font-sans selection:bg-yellow-400 selection:text-black">
       
       {/* Top HUD (DJI Style) */}
       <div className="p-6 flex justify-between items-start z-40 bg-gradient-to-b from-black/60 to-transparent absolute top-0 left-0 right-0">
         <div className="flex gap-5 items-center">
-          <div className="flex flex-col">
+          <div className={`flex flex-col transition-transform duration-300 ${rotationClass}`}>
             <span className="text-[10px] font-bold tracking-[0.2em] text-white/50 uppercase mb-1">Status</span>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
@@ -215,15 +276,23 @@ export default function CameraApp() {
             </div>
           </div>
           <div className="w-[1px] h-8 bg-white/10 mx-1"></div>
-          <Zap size={20} className="opacity-70 hover:opacity-100 transition-opacity cursor-pointer" />
-          <Paperclip size={20} className="opacity-70 hover:opacity-100 transition-opacity cursor-pointer" />
+          <Zap 
+            size={20} 
+            className={`transition-all cursor-pointer ${isFlashOn ? "text-yellow-400 fill-yellow-400" : "opacity-70"} ${rotationClass}`} 
+            onClick={toggleFlash}
+          />
+          <RefreshCw 
+            size={20} 
+            className={`opacity-70 hover:opacity-100 transition-all cursor-pointer ${rotationClass}`} 
+            onClick={toggleCamera} 
+          />
         </div>
 
         <div className="flex gap-6 items-center pt-1">
-          <RefreshCw size={20} className="opacity-70 hover:opacity-100 transition-opacity cursor-pointer active:rotate-180 transition-transform duration-500" onClick={fetchLocation} />
+          <RotateCcw size={20} className={`opacity-70 hover:opacity-100 transition-all cursor-pointer ${rotationClass}`} onClick={fetchLocation} />
           <button 
             onClick={toggleAspectRatio} 
-            className="flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/10 rounded-full px-3 py-1.5 hover:bg-white/20 transition-all active:scale-95"
+            className={`flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/10 rounded-full px-3 py-1.5 hover:bg-white/20 transition-all active:scale-95 ${rotationClass}`}
           >
             <Settings size={16} className="opacity-80" />
             <span className="text-[10px] font-bold tracking-widest">{aspectRatio}</span>
@@ -248,7 +317,7 @@ export default function CameraApp() {
 
           {/* Futuristic Overlay HUD */}
           {!capturedImage && (
-            <div className="absolute bottom-0 left-0 right-0 z-20 px-8 pb-10 pt-32 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none">
+            <div className={`absolute bottom-0 left-0 right-0 z-20 px-8 pb-10 pt-32 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none transition-transform duration-300 ${rotationClass}`}>
               <div className="flex items-end gap-6 pointer-events-auto">
                 <div className="relative group shrink-0">
                   <div className="absolute -inset-2 bg-yellow-400/20 rounded-full blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
@@ -311,9 +380,13 @@ export default function CameraApp() {
           <div className="flex justify-center items-center gap-16">
             {!capturedImage ? (
               <>
-                <div className="flex flex-col items-center gap-1 opacity-40">
+                <button 
+                  onClick={() => handleZoom(0.5)}
+                  className={`flex flex-col items-center gap-1 transition-all ${zoomLevel === 0.5 ? "text-yellow-400 opacity-100" : "opacity-40"}`}
+                >
                   <span className="text-[10px] font-black tracking-tighter">0.5</span>
-                </div>
+                  {zoomLevel === 0.5 && <div className="w-1 h-1 rounded-full bg-yellow-400 shadow-[0_0_4px_rgba(250,204,21,0.6)]"></div>}
+                </button>
                 
                 <button 
                   onClick={capture}
@@ -325,9 +398,21 @@ export default function CameraApp() {
                   </div>
                 </button>
 
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-[10px] font-black tracking-tighter text-yellow-400">1.0</span>
-                  <div className="w-1 h-1 rounded-full bg-yellow-400 shadow-[0_0_4px_rgba(250,204,21,0.6)]"></div>
+                <div className="flex gap-4 items-center">
+                  <button 
+                    onClick={() => handleZoom(1)}
+                    className={`flex flex-col items-center gap-1 transition-all ${zoomLevel === 1 ? "text-yellow-400 opacity-100" : "opacity-40"}`}
+                  >
+                    <span className="text-[10px] font-black tracking-tighter">1.0</span>
+                    {zoomLevel === 1 && <div className="w-1 h-1 rounded-full bg-yellow-400 shadow-[0_0_4px_rgba(250,204,21,0.6)]"></div>}
+                  </button>
+                  <button 
+                    onClick={() => handleZoom(2)}
+                    className={`flex flex-col items-center gap-1 transition-all ${zoomLevel === 2 ? "text-yellow-400 opacity-100" : "opacity-40"}`}
+                  >
+                    <span className="text-[10px] font-black tracking-tighter">2.0</span>
+                    {zoomLevel === 2 && <div className="w-1 h-1 rounded-full bg-yellow-400 shadow-[0_0_4px_rgba(250,204,21,0.6)]"></div>}
+                  </button>
                 </div>
               </>
             ) : (
